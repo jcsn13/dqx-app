@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DQX Data Quality Manager</title>
+    <style>
+        :root {
+            --primary: #FF3621;
+            --primary-dark: #E02E1B;
+            --bg-dark: #1B1B1B;
+            --bg-card: #2D2D2D;
+            --bg-input: #3D3D3D;
+            --text: #FFFFFF;
+            --text-muted: #A0A0A0;
+            --border: #404040;
+            --success: #00A972;
+            --warning: #FF9500;
+            --danger: #FF4444;
+            --profiler: #00A972;
+            --ai: #667eea;
+            --manual: #FF9500;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header h1 { font-size: 1.5rem; font-weight: 600; }
+        .header .badge {
+            background: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-profiler { background: var(--profiler); color: white; }
+        .btn-ai { background: var(--ai); color: white; }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-success { background: rgba(0, 169, 114, 0.2); color: var(--success); }
+        .tag-warning { background: rgba(255, 149, 0, 0.2); color: var(--warning); }
+        .tag-danger { background: rgba(255, 68, 68, 0.2); color: var(--danger); }
+        .tag-info { background: rgba(0, 122, 255, 0.2); color: #007AFF; }
+        .tag-profiler { background: rgba(0, 169, 114, 0.2); color: var(--profiler); }
+        .tag-ai { background: rgba(102, 126, 234, 0.2); color: var(--ai); }
+        .tag-manual { background: rgba(255, 149, 0, 0.2); color: var(--manual); }
+
+        .rule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-input);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .rule-item.profiler { border-left: 3px solid var(--profiler); }
+        .rule-item.ai { border-left: 3px solid var(--ai); }
+        .rule-item.manual { border-left: 3px solid var(--manual); }
+
+        .rule-info h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .rule-info p { font-size: 0.8rem; color: var(--text-muted); }
+
+        .suggestion-item {
+            padding: 1rem;
+            background: var(--bg-input);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--ai);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .stats { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .stat-item { text-align: center; min-width: 100px; }
+        .stat-value { font-size: 2rem; font-weight: 700; }
+        .stat-label { font-size: 0.85rem; color: var(--text-muted); }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .profile-stat-card {
+            background: var(--bg-input);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .profile-stat-card h5 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .profile-stat-card .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 0.25rem 0;
+        }
+
+        .quarantine-row {
+            background: var(--bg-input);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid var(--danger);
+        }
+
+        .quarantine-row.updated { border-left-color: var(--success); }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] { width: auto; }
+
+        .code-block {
+            background: #1E1E1E;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .flex { display: flex; gap: 1rem; align-items: center; }
+        .flex-between { justify-content: space-between; }
+        .flex-wrap { flex-wrap: wrap; }
+        .mt-1 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 1rem; }
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-muted); }
+
+        /* Edit Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 { font-size: 1.25rem; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .modal-close:hover { color: var(--text); }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .rule-actions { display: flex; gap: 0.5rem; }
+
+        .workflow-steps {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-input);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .workflow-step.active { background: var(--primary); }
+        .workflow-step.completed { background: var(--success); }
+        .workflow-arrow { color: var(--text-muted); }
+
+        .error-tag {
+            display: inline-block;
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--danger);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin: 0.25rem;
+        }
+
+        hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DQX Data Quality Manager</h1>
+        <span class="badge">Databricks</span>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="tables">1. Select Table</div>
+        <div class="tab" data-tab="rules">2. Profile & Rules</div>
+        <div class="tab" data-tab="quarantine">3. Quarantine</div>
+        <div class="tab" data-tab="config">Export Config</div>
+    </div>
+
+    <div class="container">
+        <!-- Tables Tab -->
+        <div id="tables" class="tab-content active">
+            <div class="card">
+                <div class="card-title">Select Table to Analyze</div>
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Catalog</label>
+                        <select id="catalog-select">
+                            <option value="">Select catalog...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Schema</label>
+                        <select id="schema-select" disabled>
+                            <option value="">Select schema...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Table</label>
+                        <select id="table-select" disabled>
+                            <option value="">Select table...</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="continue-to-rules" disabled onclick="goToRules()">
+                    Continue to Profile & Rules
+                </button>
+            </div>
+
+            <div class="card" id="schema-card" style="display: none;">
+                <div class="card-title">Table Schema</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Data Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schema-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="card" id="preview-card" style="display: none;">
+                <div class="flex flex-between mb-1">
+                    <div class="card-title">Data Preview (20 rows)</div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadPreview()">Refresh</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="preview-table">
+                        <thead id="preview-head"></thead>
+                        <tbody id="preview-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rules Tab -->
+        <div id="rules" class="tab-content">
+            <div class="card">
+                <div class="flex flex-between mb-1">
+                    <div class="card-title">Data Quality Rules</div>
+                    <span id="selected-table-display" class="tag tag-info">No table selected</span>
+                </div>
+
+                <div class="workflow-steps">
+                    <div class="workflow-step" id="step-profile">
+                        <span>1</span> Profile Table
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step" id="step-ai">
+                        <span>2</span> AI Suggestions (Optional)
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step" id="step-check">
+                        <span>3</span> Run Quality Check
+                    </div>
+                </div>
+
+                <div id="no-table-warning" class="empty-state">
+                    <p>Please select a table first from the Tables tab</p>
+                </div>
+
+                <div id="rules-section" style="display: none;">
+                    <!-- Step 1: Profile -->
+                    <div class="card" style="background: var(--bg-input);">
+                        <div class="flex flex-between">
+                            <div>
+                                <h4>Step 1: Profile Table (DQX Profiler)</h4>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                                    Automatically analyze your data and generate quality rules based on column statistics.
+                                </p>
+                            </div>
+                            <button class="btn btn-profiler" onclick="profileTable()" id="profile-btn">
+                                <span id="profile-btn-text">Run Profiler</span>
+                                <span id="profile-loading" class="loading" style="display: none;"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Profile Results -->
+                    <div id="profile-results" style="display: none;">
+                        <div class="card" style="background: var(--bg-input);">
+                            <h4 class="mb-1">Profile Statistics</h4>
+                            <div class="stats">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="profile-total-rows">0</div>
+                                    <div class="stat-label">Total Rows</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="profile-columns">0</div>
+                                    <div class="stat-label">Columns</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="profile-rules-generated">0</div>
+                                    <div class="stat-label">Rules Generated</div>
+                                </div>
+                            </div>
+                            <div id="column-stats" class="profile-stats"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: AI Suggestions -->
+                    <div class="card" style="background: var(--bg-input);">
+                        <div class="flex flex-between">
+                            <div>
+                                <h4>Step 2: AI Rule Suggestions <span class="tag tag-ai">Optional</span></h4>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                                    Get AI-powered suggestions for additional rules the profiler may have missed.
+                                </p>
+                            </div>
+                            <button class="btn btn-ai" onclick="suggestRules()" id="suggest-btn">
+                                <span id="suggest-btn-text">Get AI Suggestions</span>
+                                <span id="suggest-loading" class="loading" style="display: none;"></span>
+                            </button>
+                        </div>
+                        <div id="suggestions-container" class="mt-1"></div>
+                    </div>
+
+                    <!-- Manual Rule Addition -->
+                    <div class="card" style="background: var(--bg-input);">
+                        <h4 class="mb-1">Add Manual Rule <span class="tag tag-manual">Optional</span></h4>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label>Column</label>
+                                <select id="rule-column">
+                                    <option value="">Select column...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Check Function</label>
+                                <select id="rule-type">
+                                    <option value="is_not_null">is_not_null</option>
+                                    <option value="is_not_null_and_not_empty">is_not_null_and_not_empty</option>
+                                    <option value="is_unique">is_unique</option>
+                                    <option value="is_in_range">is_in_range</option>
+                                    <option value="is_in_list">is_in_list</option>
+                                    <option value="matches_regex">matches_regex</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Parameters (JSON)</label>
+                            <input type="text" id="rule-params" placeholder='{"min_value": 0, "max_value": 100}'>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="rule-description" placeholder="Brief description of the rule">
+                        </div>
+                        <button class="btn btn-secondary" onclick="addRule()">Add Manual Rule</button>
+                    </div>
+
+                    <hr>
+
+                    <!-- Current Rules -->
+                    <div class="flex flex-between mb-1">
+                        <h4>Current Rules (<span id="rules-count">0</span>)</h4>
+                        <button class="btn btn-success" onclick="runQualityCheck()" id="run-check-btn">
+                            Run Quality Check
+                        </button>
+                    </div>
+                    <div id="rules-list">
+                        <div class="empty-state">No rules defined. Run the profiler first.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quarantine Tab -->
+        <div id="quarantine" class="tab-content">
+            <div class="card">
+                <div class="card-title">Quarantined Records</div>
+
+                <div id="quarantine-stats" class="stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-quarantined">0</div>
+                        <div class="stat-label">Total Quarantined</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="quarantine-table-name" style="font-size: 1rem;">-</div>
+                        <div class="stat-label">Quarantine Table</div>
+                    </div>
+                </div>
+
+                <div id="quarantine-actions" class="flex mb-1" style="display: none;">
+                    <button class="btn btn-success" onclick="promoteSelected()">Promote Selected to Silver</button>
+                    <button class="btn btn-secondary" onclick="refreshQuarantine()">Refresh</button>
+                </div>
+
+                <div id="quarantine-container">
+                    <div class="empty-state">
+                        <p>No quarantined records. Run a quality check first.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Tab -->
+        <div id="config" class="tab-content">
+            <div class="card">
+                <div class="flex flex-between mb-1">
+                    <div class="card-title">DQX Configuration Export</div>
+                    <button class="btn btn-primary" onclick="generateConfig()">Generate YAML</button>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    Export your rules as a DQX-compatible YAML configuration file for use in notebooks or DLT pipelines.
+                </p>
+                <div id="config-output" class="code-block" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Rule Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Edit Rule</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="edit-rule-form">
+                <input type="hidden" id="edit-rule-index">
+                <div class="form-group">
+                    <label>Column</label>
+                    <select id="edit-rule-column" required>
+                        <option value="">Select column...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Check Function</label>
+                    <select id="edit-rule-type" required>
+                        <option value="is_not_null">is_not_null</option>
+                        <option value="is_not_null_and_not_empty">is_not_null_and_not_empty</option>
+                        <option value="is_unique">is_unique</option>
+                        <option value="is_in_range">is_in_range</option>
+                        <option value="is_in_list">is_in_list</option>
+                        <option value="matches_regex">matches_regex</option>
+                        <option value="sql_expression">sql_expression</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Parameters (JSON)</label>
+                    <input type="text" id="edit-rule-params" placeholder='{"min_value": 0, "max_value": 100}'>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="edit-rule-description" placeholder="Brief description of the rule" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let state = {
+            catalog: '',
+            schema: '',
+            table: '',
+            columns: [],
+            rules: [],
+            profile: null,
+            quarantine: []
+        };
+
+        // Helper function to parse failed rules (handles string/array from SQL)
+        function parseFailedRules(failedRules) {
+            if (!failedRules) return [];
+            if (Array.isArray(failedRules)) return failedRules;
+            if (typeof failedRules === 'string') {
+                try {
+                    const parsed = JSON.parse(failedRules);
+                    return Array.isArray(parsed) ? parsed : [failedRules];
+                } catch (e) {
+                    // If it's a comma-separated string or single value
+                    return failedRules.split(',').map(s => s.trim()).filter(Boolean);
+                }
+            }
+            return [String(failedRules)];
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Initialize
+        async function init() {
+            const res = await fetch('/api/catalogs');
+            const data = await res.json();
+            const select = document.getElementById('catalog-select');
+            data.catalogs.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                select.appendChild(opt);
+            });
+        }
+
+        // Catalog change
+        document.getElementById('catalog-select').addEventListener('change', async (e) => {
+            state.catalog = e.target.value;
+            state.schema = '';
+            state.table = '';
+            state.columns = [];
+            state.rules = [];
+            state.profile = null;
+
+            const schemaSelect = document.getElementById('schema-select');
+            schemaSelect.innerHTML = '<option value="">Select schema...</option>';
+            schemaSelect.disabled = !state.catalog;
+
+            document.getElementById('table-select').innerHTML = '<option value="">Select table...</option>';
+            document.getElementById('table-select').disabled = true;
+            document.getElementById('schema-card').style.display = 'none';
+            document.getElementById('preview-card').style.display = 'none';
+            document.getElementById('continue-to-rules').disabled = true;
+
+            if (state.catalog) {
+                const res = await fetch(`/api/schemas/${state.catalog}`);
+                const data = await res.json();
+                data.schemas.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    schemaSelect.appendChild(opt);
+                });
+            }
+            updateTableDisplay();
+        });
+
+        // Schema change
+        document.getElementById('schema-select').addEventListener('change', async (e) => {
+            state.schema = e.target.value;
+            state.table = '';
+            state.columns = [];
+            state.rules = [];
+            state.profile = null;
+
+            const tableSelect = document.getElementById('table-select');
+            tableSelect.innerHTML = '<option value="">Select table...</option>';
+            tableSelect.disabled = !state.schema;
+            document.getElementById('schema-card').style.display = 'none';
+            document.getElementById('preview-card').style.display = 'none';
+            document.getElementById('continue-to-rules').disabled = true;
+
+            if (state.catalog && state.schema) {
+                const res = await fetch(`/api/tables/${state.catalog}/${state.schema}`);
+                const data = await res.json();
+                data.tables.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    tableSelect.appendChild(opt);
+                });
+            }
+            updateTableDisplay();
+        });
+
+        // Table change
+        document.getElementById('table-select').addEventListener('change', async (e) => {
+            state.table = e.target.value;
+            state.columns = [];
+            state.rules = [];
+            state.profile = null;
+
+            if (state.catalog && state.schema && state.table) {
+                const res = await fetch(`/api/table-schema/${state.catalog}/${state.schema}/${state.table}`);
+                const data = await res.json();
+                state.columns = data.columns;
+
+                // Update schema display
+                const tbody = document.getElementById('schema-table-body');
+                tbody.innerHTML = '';
+                state.columns.forEach(col => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${col.name}</td><td><span class="tag tag-info">${col.type}</span></td>`;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('schema-card').style.display = 'block';
+                document.getElementById('preview-card').style.display = 'block';
+                document.getElementById('continue-to-rules').disabled = false;
+
+                // Update rule column dropdown
+                const ruleColumn = document.getElementById('rule-column');
+                ruleColumn.innerHTML = '<option value="">Select column...</option>';
+                state.columns.forEach(col => {
+                    const opt = document.createElement('option');
+                    opt.value = col.name;
+                    opt.textContent = `${col.name} (${col.type})`;
+                    ruleColumn.appendChild(opt);
+                });
+
+                // Load preview
+                loadPreview();
+
+                // Load existing rules
+                await loadRules();
+            } else {
+                document.getElementById('schema-card').style.display = 'none';
+                document.getElementById('preview-card').style.display = 'none';
+                document.getElementById('continue-to-rules').disabled = true;
+            }
+            updateTableDisplay();
+        });
+
+        async function loadPreview() {
+            if (!state.table) return;
+            try {
+                const res = await fetch(`/api/table-preview/${getTableKey()}`);
+                const data = await res.json();
+
+                if (data.columns && data.data) {
+                    const thead = document.getElementById('preview-head');
+                    const tbody = document.getElementById('preview-body');
+
+                    thead.innerHTML = '<tr>' + data.columns.map(c => `<th>${c.name}</th>`).join('') + '</tr>';
+                    tbody.innerHTML = data.data.map(row =>
+                        '<tr>' + row.map(v => `<td>${v !== null ? v : '<span class="tag tag-danger">NULL</span>'}</td>`).join('') + '</tr>'
+                    ).join('');
+                }
+            } catch (e) {
+                console.error('Preview error:', e);
+            }
+        }
+
+        function goToRules() {
+            document.querySelector('.tab[data-tab="rules"]').click();
+        }
+
+        function updateTableDisplay() {
+            const display = document.getElementById('selected-table-display');
+            const noTableWarning = document.getElementById('no-table-warning');
+            const rulesSection = document.getElementById('rules-section');
+
+            if (state.catalog && state.schema && state.table) {
+                display.textContent = `${state.catalog}.${state.schema}.${state.table}`;
+                noTableWarning.style.display = 'none';
+                rulesSection.style.display = 'block';
+            } else {
+                display.textContent = 'No table selected';
+                noTableWarning.style.display = 'block';
+                rulesSection.style.display = 'none';
+            }
+        }
+
+        function getTableKey() {
+            return `${state.catalog}.${state.schema}.${state.table}`;
+        }
+
+        async function loadRules() {
+            const res = await fetch(`/api/rules/${getTableKey()}`);
+            const data = await res.json();
+            state.rules = data.rules;
+            renderRules();
+        }
+
+        function renderRules() {
+            const list = document.getElementById('rules-list');
+            document.getElementById('rules-count').textContent = state.rules.length;
+
+            if (state.rules.length === 0) {
+                list.innerHTML = '<div class="empty-state">No rules defined. Run the profiler first.</div>';
+                return;
+            }
+
+            list.innerHTML = state.rules.map((rule, idx) => `
+                <div class="rule-item ${rule.source || 'manual'}">
+                    <div class="rule-info">
+                        <h4>${rule.description || 'Unnamed Rule'}</h4>
+                        <p>
+                            Column: <strong>${rule.column}</strong> |
+                            Check: <span class="tag tag-warning">${rule.check_func || rule.rule_type}</span> |
+                            Source: <span class="tag tag-${rule.source || 'manual'}">${rule.source || 'manual'}</span>
+                        </p>
+                    </div>
+                    <div class="rule-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="openEditModal(${idx})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRule(${idx})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function profileTable() {
+            if (!state.table) {
+                alert('Please select a table first');
+                return;
+            }
+
+            document.getElementById('profile-btn-text').style.display = 'none';
+            document.getElementById('profile-loading').style.display = 'inline-block';
+            document.getElementById('profile-btn').disabled = true;
+
+            try {
+                const res = await fetch('/api/profile-table', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ table_key: getTableKey() })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                state.profile = data.profile;
+                state.rules = data.generated_rules;
+
+                // Update profile stats display
+                document.getElementById('profile-total-rows').textContent = data.profile.total_rows.toLocaleString();
+                document.getElementById('profile-columns').textContent = Object.keys(data.profile.columns).length;
+                document.getElementById('profile-rules-generated').textContent = data.generated_rules.length;
+
+                // Column stats
+                const columnStats = document.getElementById('column-stats');
+                columnStats.innerHTML = Object.entries(data.profile.columns).map(([name, stats]) => {
+                    if (stats.error) {
+                        return `<div class="profile-stat-card"><h5>${name}</h5><p>Error: ${stats.error}</p></div>`;
+                    }
+                    return `
+                        <div class="profile-stat-card">
+                            <h5>${name} <span class="tag tag-info">${stats.type}</span></h5>
+                            <div class="stat-row"><span>Nulls:</span><span>${stats.null_count} (${(stats.null_ratio * 100).toFixed(1)}%)</span></div>
+                            <div class="stat-row"><span>Distinct:</span><span>${stats.distinct_count} (${(stats.distinct_ratio * 100).toFixed(1)}%)</span></div>
+                            <div class="stat-row"><span>Min:</span><span>${stats.min || 'N/A'}</span></div>
+                            <div class="stat-row"><span>Max:</span><span>${stats.max || 'N/A'}</span></div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('profile-results').style.display = 'block';
+                document.getElementById('step-profile').classList.add('completed');
+
+                renderRules();
+                alert(data.message);
+
+            } catch (e) {
+                alert('Error profiling table: ' + e.message);
+            } finally {
+                document.getElementById('profile-btn-text').style.display = 'inline';
+                document.getElementById('profile-loading').style.display = 'none';
+                document.getElementById('profile-btn').disabled = false;
+            }
+        }
+
+        async function suggestRules() {
+            if (state.columns.length === 0) {
+                alert('Please select a table and run profiler first');
+                return;
+            }
+
+            document.getElementById('suggest-btn-text').style.display = 'none';
+            document.getElementById('suggest-loading').style.display = 'inline-block';
+            document.getElementById('suggest-btn').disabled = true;
+
+            try {
+                const res = await fetch('/api/suggest-rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        columns: state.columns,
+                        table_name: getTableKey(),
+                        existing_rules: state.rules,
+                        profile: state.profile
+                    })
+                });
+                const data = await res.json();
+
+                const container = document.getElementById('suggestions-container');
+                if (data.suggestions && data.suggestions.length > 0) {
+                    container.innerHTML = data.suggestions.map((s, idx) => `
+                        <div class="suggestion-item">
+                            <div class="flex flex-between mb-1">
+                                <strong>${s.column}</strong>
+                                <span class="tag tag-warning">${s.check_func}</span>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.85rem;">${s.description}</p>
+                            <button class="btn btn-ai btn-sm mt-1" onclick='applySuggestion(${JSON.stringify(s).replace(/'/g, "\\'")})'>
+                                Apply Rule
+                            </button>
+                        </div>
+                    `).join('');
+                    document.getElementById('step-ai').classList.add('completed');
+                } else if (data.error) {
+                    container.innerHTML = `<p style="color: var(--danger);">Error: ${data.error}</p>`;
+                } else {
+                    container.innerHTML = '<p>No additional suggestions available</p>';
+                }
+            } catch (e) {
+                alert('Error generating suggestions: ' + e.message);
+            } finally {
+                document.getElementById('suggest-btn-text').style.display = 'inline';
+                document.getElementById('suggest-loading').style.display = 'none';
+                document.getElementById('suggest-btn').disabled = false;
+            }
+        }
+
+        async function applySuggestion(suggestion) {
+            await fetch(`/api/rules/${getTableKey()}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(suggestion)
+            });
+            await loadRules();
+        }
+
+        async function addRule() {
+            const column = document.getElementById('rule-column').value;
+            const ruleType = document.getElementById('rule-type').value;
+            const paramsStr = document.getElementById('rule-params').value;
+            const description = document.getElementById('rule-description').value;
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            let params = {};
+            if (paramsStr) {
+                try {
+                    params = JSON.parse(paramsStr);
+                } catch (e) {
+                    alert('Invalid JSON in parameters');
+                    return;
+                }
+            }
+
+            const rule = {
+                column,
+                rule_type: ruleType,
+                check_func: ruleType,
+                parameters: params,
+                description: description || `${ruleType} check on ${column}`,
+                source: 'manual'
+            };
+
+            await fetch(`/api/rules/${getTableKey()}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rule)
+            });
+
+            document.getElementById('rule-column').value = '';
+            document.getElementById('rule-params').value = '';
+            document.getElementById('rule-description').value = '';
+
+            await loadRules();
+        }
+
+        async function deleteRule(index) {
+            await fetch(`/api/rules/${getTableKey()}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index })
+            });
+            await loadRules();
+        }
+
+        function openEditModal(index) {
+            const rule = state.rules[index];
+            if (!rule) return;
+
+            // Populate edit form
+            document.getElementById('edit-rule-index').value = index;
+
+            // Populate column dropdown
+            const columnSelect = document.getElementById('edit-rule-column');
+            columnSelect.innerHTML = '<option value="">Select column...</option>';
+            state.columns.forEach(col => {
+                const opt = document.createElement('option');
+                opt.value = col.name;
+                opt.textContent = `${col.name} (${col.type})`;
+                opt.selected = col.name === rule.column;
+                columnSelect.appendChild(opt);
+            });
+
+            document.getElementById('edit-rule-type').value = rule.check_func || rule.rule_type || 'is_not_null';
+            document.getElementById('edit-rule-params').value = rule.parameters ? JSON.stringify(rule.parameters) : '';
+            document.getElementById('edit-rule-description').value = rule.description || '';
+
+            // Show modal
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        // Handle edit form submission
+        document.getElementById('edit-rule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const index = parseInt(document.getElementById('edit-rule-index').value);
+            const column = document.getElementById('edit-rule-column').value;
+            const ruleType = document.getElementById('edit-rule-type').value;
+            const paramsStr = document.getElementById('edit-rule-params').value;
+            const description = document.getElementById('edit-rule-description').value;
+
+            if (!column) {
+                alert('Please select a column');
+                return;
+            }
+
+            let params = {};
+            if (paramsStr) {
+                try {
+                    params = JSON.parse(paramsStr);
+                } catch (e) {
+                    alert('Invalid JSON in parameters');
+                    return;
+                }
+            }
+
+            const updatedRule = {
+                column,
+                rule_type: ruleType,
+                check_func: ruleType,
+                parameters: params,
+                description: description || `${ruleType} check on ${column}`
+            };
+
+            try {
+                const res = await fetch(`/api/rules/${getTableKey()}/${index}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedRule)
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                closeEditModal();
+                await loadRules();
+            } catch (e) {
+                alert('Error updating rule: ' + e.message);
+            }
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('edit-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'edit-modal') {
+                closeEditModal();
+            }
+        });
+
+        async function runQualityCheck() {
+            if (state.rules.length === 0) {
+                alert('Please define at least one rule first (run profiler)');
+                return;
+            }
+
+            document.getElementById('run-check-btn').disabled = true;
+            document.getElementById('run-check-btn').textContent = 'Running...';
+
+            try {
+                const res = await fetch('/api/run-quality-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ table_key: getTableKey() })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('step-check').classList.add('completed');
+                alert(data.message);
+
+                // Switch to quarantine tab
+                document.querySelector('.tab[data-tab="quarantine"]').click();
+                await refreshQuarantine();
+            } catch (e) {
+                alert('Error running quality check: ' + e.message);
+            } finally {
+                document.getElementById('run-check-btn').disabled = false;
+                document.getElementById('run-check-btn').textContent = 'Run Quality Check';
+            }
+        }
+
+        async function refreshQuarantine() {
+            if (!state.table) return;
+
+            try {
+                const res = await fetch(`/api/quarantine/${getTableKey()}`);
+                const data = await res.json();
+                state.quarantine = data.records || [];
+
+                const container = document.getElementById('quarantine-container');
+                const stats = document.getElementById('quarantine-stats');
+                const actions = document.getElementById('quarantine-actions');
+
+                if (state.quarantine.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No quarantined records. ' + (data.message || 'Run a quality check first.') + '</p></div>';
+                    stats.style.display = 'none';
+                    actions.style.display = 'none';
+                    return;
+                }
+
+                stats.style.display = 'flex';
+                actions.style.display = 'flex';
+
+                document.getElementById('total-quarantined').textContent = state.quarantine.length;
+                document.getElementById('quarantine-table-name').textContent = data.quarantine_table || '-';
+
+                container.innerHTML = state.quarantine.map(record => `
+                    <div class="quarantine-row">
+                        <div class="flex flex-between mb-1">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="quarantine-checkbox" value="${record._row_id}">
+                                <strong>Row ${record._row_id}</strong>
+                            </label>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                ${record._quarantine_time || ''}
+                            </span>
+                        </div>
+                        <div class="mb-1">
+                            <strong>Failed Rules:</strong>
+                            ${parseFailedRules(record._failed_rules).map(r => `<span class="error-tag">${r}</span>`).join('')}
+                        </div>
+                        <div class="form-group">
+                            <label>Data</label>
+                            <textarea
+                                class="quarantine-data"
+                                data-row-id="${record._row_id}"
+                                rows="3"
+                                style="font-family: monospace; font-size: 0.85rem;"
+                            >${JSON.stringify(record._original_data, null, 2)}</textarea>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading quarantine:', e);
+            }
+        }
+
+        async function promoteSelected() {
+            const checkboxes = document.querySelectorAll('.quarantine-checkbox:checked');
+            const rowIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (rowIds.length === 0) {
+                alert('Please select records to promote');
+                return;
+            }
+
+            const res = await fetch(`/api/quarantine/${getTableKey()}/promote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_ids: rowIds })
+            });
+            const data = await res.json();
+
+            alert(data.message);
+            await refreshQuarantine();
+        }
+
+        async function generateConfig() {
+            if (!state.table) {
+                alert('Please select a table first');
+                return;
+            }
+
+            const res = await fetch('/api/generate-dqx-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_key: getTableKey() })
+            });
+            const data = await res.json();
+
+            const output = document.getElementById('config-output');
+            if (data.config) {
+                output.textContent = data.config;
+                output.style.display = 'block';
+            } else {
+                output.textContent = 'Error: ' + (data.error || 'No rules defined');
+                output.style.display = 'block';
+            }
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

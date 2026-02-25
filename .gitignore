@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.claude
+
+# Databricks
+.databricks/
+
+# OS
+.DS_Store
