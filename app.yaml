@@ -1,6 +1,11 @@
+# Flask: use Gunicorn in production (Databricks Apps expect port 8080)
 command:
-  - "python"
-  - "app.py"
+  - "gunicorn"
+  - "app:app"
+  - "-w"
+  - "4"
+  - "-b"
+  - "0.0.0.0:8080"
 
 env:
   # Foundation Model endpoint for AI-powered rule suggestions

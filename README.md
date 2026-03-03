@@ -2,7 +2,7 @@
 
 A Databricks App for managing data quality rules and profiling on Unity Catalog tables. It uses DQX-style profiling and quality checks via the Databricks SQL Statement API and stores rules and profiles in Lakebase (PostgreSQL).
 
-**Status: In development.** Functionality and configuration may change. An automatic deployment script for Databricks Apps is planned and will be added in a future update.
+**Status: In development.** Functionality and configuration may change.
 
 ## Features
 
@@ -44,17 +44,26 @@ A Databricks App for managing data quality rules and profiling on Unity Catalog 
 
    By default the app serves at `http://127.0.0.1:5000`.
 
-### Running as a Databricks App
+### Deploy to Databricks (DABs)
 
-The app is designed to run as a [Databricks App](https://docs.databricks.com/apps). The `app.yaml` defines:
+Deploy using [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/). The app uses the **existing** Unity Catalog catalog `agentbricks_catalog` (Lakebase-backed); the bundle does not create any catalog or instance, so no `CREATE CATALOG` permission is required.
 
-- **Command:** `python app.py`
-- **Env:** `SERVING_ENDPOINT` for the Foundation Model endpoint used for AI rule suggestions (e.g. `databricks-claude-sonnet-4-5`).
-- **Resources:** A Lakebase database resource `dqx-db` (instance `dqx-lakebase`, database `dqx_rules`) with `CAN_CONNECT_AND_CREATE`, used for storing rules and profiles.
+**Prerequisites:** Databricks CLI 0.239.0+, `databricks auth login`, and a `~/.databrickscfg` profile. Set `workspace.profile` in `databricks.yml` per target. Ensure the Lakebase instance that backs `agentbricks_catalog` exists; if its name is not `agentbricks-lakebase`, set `lakebase_instance_name` in `databricks.yml` for that target.
 
-When deployed as an app, the platform sets `DATABRICKS_APP_NAME`, `DATABRICKS_HOST`, and the Lakebase connection environment variables (e.g. `PGHOST`, `PGUSER`, etc.) so the app can connect to the workspace and database without extra local configuration.
+**Commands:**
 
-**Deployment:** An automatic deployment script for publishing this app to Databricks Apps is planned and will be documented here once available.
+```bash
+# Validate bundle (uses target dev by default)
+databricks bundle validate -t dev
+
+# Deploy app (attaches to existing catalog agentbricks_catalog)
+databricks bundle deploy -t dev
+
+# Start the app (required after deploy)
+databricks bundle run dqx -t dev
+```
+
+For production, use `-t prod` and set the `prod` target’s `workspace.profile` and `lakebase_instance_name` as needed. **Bundle layout:** `databricks.yml` (targets and `lakebase_instance_name`), `resources/dqx.app.yml` (app bound to existing catalog). App env and command stay in `app.yaml`.
 
 ## Project layout
 
@@ -62,3 +71,5 @@ When deployed as an app, the platform sets `DATABRICKS_APP_NAME`, `DATABRICKS_HO
 - `app.yaml` – Databricks App manifest (command, env, Lakebase resource).
 - `requirements.txt` – Python dependencies (Flask, Databricks SDK, DQX, OpenAI client, psycopg2, etc.).
 - `templates/index.html` – Single-page UI for catalogs, profiling, and rules.
+- `databricks.yml` – Asset Bundle config (targets, `lakebase_instance_name` for existing catalog).
+- `resources/dqx.app.yml` – App resource bound to existing catalog `agentbricks_catalog` (used by `databricks bundle deploy` / `bundle run`).

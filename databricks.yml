@@ -1,0 +1,32 @@
+# Databricks Asset Bundle for DQX Data Quality Manager
+# Deploy: databricks bundle deploy -t dev && databricks bundle run dqx -t dev
+# Uses existing UC catalog agentbricks_catalog (no CREATE CATALOG required).
+# Set workspace.profile and lakebase_instance_name per target.
+bundle:
+  name: dqx
+
+include:
+  - resources/dqx.lakebase.yml
+  - resources/dqx.app.yml
+
+variables:
+  # Lakebase instance that backs the existing catalog agentbricks_catalog
+  lakebase_instance_name:
+    description: "Name of the Lakebase instance backing agentbricks_catalog"
+    default: "dqx-lakebase"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      profile: DEFAULT
+    variables:
+      lakebase_instance_name: "dqx-lakebase"
+
+  prod:
+    mode: production
+    workspace:
+      profile: DEFAULT
+    variables:
+      lakebase_instance_name: "dqx-lakebase"

@@ -1,0 +1,13 @@
+# DQX Data Quality Manager app. Depends on Lakebase instance from dqx.lakebase.yml.
+resources:
+  apps:
+    dqx:
+      name: dqx-${bundle.target}
+      description: "DQX Data Quality Manager - rules and profiling for Unity Catalog tables"
+      source_code_path: ..
+      resources:
+        - name: dqx-db
+          database:
+            instance_name: ${resources.database_instances.dqx_instance.name}
+            database_name: dqx_rules
+            permission: CAN_CONNECT_AND_CREATE
